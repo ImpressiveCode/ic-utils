@@ -33,8 +33,10 @@ public interface SourceParser {
 
 	JavaFile parseSource(JavaSource sourceToParse);
 
-	JavaClazz analyzeClass(JavaClass javaClass);
-
+    public JavaClazz analyzeClassQDOX(JavaClass javaClass);
+    
 	boolean checkIsThrowable(JavaClass superJavaClass);
+
+	public JavaClazz additionalAnalyzeClass(JavaClazz javaClazz, JavaClass javaClass);
 
 }

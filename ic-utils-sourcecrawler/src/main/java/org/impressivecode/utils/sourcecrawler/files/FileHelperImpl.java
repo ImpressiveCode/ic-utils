@@ -19,7 +19,10 @@ package org.impressivecode.utils.sourcecrawler.files;
 
 import com.thoughtworks.qdox.model.JavaSource;
 
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.LineNumberReader;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -29,11 +32,11 @@ import java.nio.file.PathMatcher;
 /**
  * 
  * @author Paweł Nosal
+ * @author Maciej Borkowski, Capgemini Poland
  * 
  */
 
 public class FileHelperImpl implements FileHelper {
-
 	@Override
 	public boolean isDirectory(final Path path) {
 		return Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS);
@@ -54,5 +57,20 @@ public class FileHelperImpl implements FileHelper {
     public boolean isTest(JavaSource javaSource) {
         return javaSource.getURL().getPath().indexOf("/test/")>-1;
     }
+
+	@Override
+	public int countLines(File file) throws IOException {
+        LineNumberReader reader = null;
+        try {
+            reader = new LineNumberReader(new FileReader(file));
+            while ((reader.readLine()) != null);
+            return reader.getLineNumber();
+        } catch (Exception ex) {
+            return -1;
+        } finally { 
+            if(reader != null) 
+                reader.close();
+        }
+	}
 
 }

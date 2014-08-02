@@ -17,31 +17,32 @@
  */
 package org.impressivecode.utils.sourcecrawler.parser;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.impressivecode.utils.sourcecrawler.files.FileHelper;
 import org.impressivecode.utils.sourcecrawler.files.FileHelperImpl;
+import org.impressivecode.utils.sourcecrawler.model.ClazzAccess;
 import org.impressivecode.utils.sourcecrawler.model.ClazzType;
 import org.impressivecode.utils.sourcecrawler.model.JavaClazz;
 import org.impressivecode.utils.sourcecrawler.model.JavaFile;
 
 import com.thoughtworks.qdox.model.JavaClass;
+import com.thoughtworks.qdox.model.JavaPackage;
 import com.thoughtworks.qdox.model.JavaSource;
 
 import static com.google.common.collect.Lists.newArrayList;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 /**
  * @author Paweł Nosal
+ * @author Maciej Borkowski
  */
 public class SourceParserImpl implements SourceParser {
-
     private String throwableClassName;
     private FileHelper fileHelper;
 
@@ -62,9 +63,7 @@ public class SourceParserImpl implements SourceParser {
         JavaFile javaFile = new JavaFile();
         try {
             setupPackage(sourceToParse, javaFile);
-
             setupPath(sourceToParse, javaFile);
-
             List<JavaClazz> parsedClasses = parseClasses(sourceToParse);
             javaFile.setClasses(parsedClasses);
         } catch (URISyntaxException | IOException ex) {
@@ -74,10 +73,13 @@ public class SourceParserImpl implements SourceParser {
     }
 
     private List<JavaClazz> parseClasses(JavaSource sourceToParse) {
-        JavaClass[] javaClasses = sourceToParse.getClasses();
+        List<JavaClass> javaClasses = sourceToParse.getClasses();
+        List<JavaClass> allClasses = new ArrayList<JavaClass>(javaClasses);
+        allClasses.addAll(findNestedClasses(javaClasses));
         List<JavaClazz> parsedClasses = newArrayList();
-        for (JavaClass javaClass : javaClasses) {
-            JavaClazz analyzedClass = analyzeClass(javaClass);
+        for (JavaClass javaClass : allClasses) {
+            JavaClazz analyzedClass = analyzeClassQDOX(javaClass);
+            additionalAnalyzeClass(analyzedClass, javaClass);
             parsedClasses.add(analyzedClass);
         }
         return parsedClasses;
@@ -86,30 +88,57 @@ public class SourceParserImpl implements SourceParser {
     private void setupPath(JavaSource sourceToParse, JavaFile javaFile) throws URISyntaxException, IOException {
         if (sourceToParse.getURL() != null) {
             URL url = sourceToParse.getURL();
-//            URI uri = url.toURI();
             File file = new File(url.getPath());
             javaFile.setFilePath(file.getCanonicalPath());
         }
     }
 
     private void setupPackage(JavaSource sourceToParse, JavaFile javaFile) {
-        String packageName = sourceToParse.getPackage();
-        javaFile.setPackageName(packageName);
+        JavaPackage jPackage = sourceToParse.getPackage();
+        if(jPackage != null){
+	        String packageName = jPackage.getName();
+	        javaFile.setPackageName(packageName);
+        }
+        else javaFile.setPackageName("");
     }
 
     @Override
-    public JavaClazz analyzeClass(JavaClass javaClass) {
-        JavaClazz javaClazz = checkClassType(javaClass);
-        boolean isException = checkIsThrowable(javaClass);
-
-        javaClazz.setException(isException);
+    public JavaClazz analyzeClassQDOX(JavaClass javaClass) {
+        JavaClazz javaClazz = new JavaClazz();
+        checkClassType(javaClass, javaClazz);
+        checkClassAccess(javaClass, javaClazz);
+       
+        javaClazz.setException(checkIsThrowable(javaClass));
         javaClazz.setClassName(javaClass.getName());
         javaClazz.setInner(javaClass.isInner());
+        javaClazz.setFinal(javaClass.isFinal());
         return javaClazz;
     }
 
-    private JavaClazz checkClassType(JavaClass javaClass) {
-        JavaClazz javaClazz = new JavaClazz();
+	@Override
+    public JavaClazz additionalAnalyzeClass(JavaClazz javaClazz, JavaClass javaClass){
+        //Additional checks on top of QDOX properties
+        if(!javaClazz.isTest()){
+        	javaClazz.setTest(checkForTests(javaClazz));
+        }
+    	return javaClazz;
+    }
+
+    private boolean checkForTests(JavaClazz javaClazz) {
+		return (javaClazz.getClassName().endsWith("Test") || javaClazz.getClassName().endsWith("Tests"));
+	}
+    
+    private List<JavaClass> findNestedClasses(List<JavaClass> javaClasses){
+    	List<JavaClass> nestedClasses = new ArrayList<JavaClass>();
+    	for(JavaClass aClass: javaClasses){
+    		if(aClass.getNestedClasses().size() != 0){
+	    		nestedClasses.addAll(aClass.getNestedClasses());
+    		}
+    	}
+    	return nestedClasses;
+    }
+
+	private void checkClassType(JavaClass javaClass, JavaClazz javaClazz) {
         if (javaClass.isEnum()) {
             javaClazz.setClassType(ClazzType.ENUM);
         } else if (javaClass.isInterface()) {
@@ -121,8 +150,19 @@ public class SourceParserImpl implements SourceParser {
             boolean b = fileHelper.isTest(javaClass.getSource());
             javaClazz.setTest(b);
         }
-        return javaClazz;
     }
+	
+    private void checkClassAccess(JavaClass javaClass, JavaClazz javaClazz) {
+        if (javaClass.isProtected()) {
+            javaClazz.setClassAccess(ClazzAccess.PROTECTED);
+        } else if (javaClass.isInterface()) {
+            javaClazz.setClassAccess(ClazzAccess.PRIVATE);
+        } else if (javaClass.isAbstract()) {
+            javaClazz.setClassAccess(ClazzAccess.PUBLIC);
+        } else {
+            javaClazz.setClassAccess(ClazzAccess.PACKAGE);
+        }	
+	}
 
     @Override
     public boolean checkIsThrowable(JavaClass javaClass) {

@@ -1,6 +1,6 @@
 /*
 ImpressiveCode Depress Framework Source Crawler
-Copyright (C) 2013 ImpressiveCode contributors
+Copyright (C) 2014 ImpressiveCode contributors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -14,20 +14,21 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
-package org.impressivecode.utils.sourcecrawler.files;
-
-import java.nio.file.FileVisitor;
-import java.nio.file.Path;
-import java.util.List;
-
-/**
- *
- * @author Paweł Nosal
- *
  */
-
-public interface FileProcessor extends FileVisitor<Path> {
+package org.impressivecode.utils.sourcecrawler.model;
+/**
+ * @author Maciej Borkowski
+ */
+public enum ClazzAccess {
+	PUBLIC("Public"), PROTECTED("Protected"), PRIVATE("Private"), PACKAGE("Package-private");
 	
-	List<Path> getPaths();
+	private String access;
+
+	private ClazzAccess(String access) {
+		this.access = access;
+	}
+
+	public String getAccess() {
+		return access;
+	}
 }

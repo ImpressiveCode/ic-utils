@@ -16,19 +16,19 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.impressivecode.utils.sourcecrawler.model;
-
 /**
- * 
  * @author Paweł Nosal
- * 
+ * @author Maciej Borkowski
  */
-
 public class JavaClazz {
 	private String className;
 	private ClazzType classType;
+	private ClazzAccess classAccess;
 	private boolean isException;
 	private boolean isTest;
 	private boolean isInner;
+	private boolean isFinal;
+	
 	public String getClassName() {
 		return className;
 	}
@@ -67,5 +67,21 @@ public class JavaClazz {
 
 	public void setInner(boolean isInner) {
 		this.isInner = isInner;
+	}
+
+	public ClazzAccess getClassAccess() {
+		return classAccess;
+	}
+
+	public void setClassAccess(ClazzAccess classAccess) {
+		this.classAccess = classAccess;
+	}
+
+	public boolean isFinal() {
+		return isFinal;
+	}
+
+	public void setFinal(boolean isFinal) {
+		this.isFinal = isFinal;
 	}
 }

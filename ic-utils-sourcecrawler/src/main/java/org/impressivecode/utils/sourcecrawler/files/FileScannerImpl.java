@@ -19,7 +19,6 @@ package org.impressivecode.utils.sourcecrawler.files;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.*;
@@ -32,6 +31,7 @@ import static com.google.common.base.Preconditions.*;
 
 public class FileScannerImpl implements FileScanner {
 	private final FileHelper fileHelper;
+	
 	public FileScannerImpl(final FileHelper fileHelper) {
 		this.fileHelper = fileHelper;
 	}
